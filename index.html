@@ -1,0 +1,2263 @@
+<!DOCTYPE html>
+<html lang="ckb" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="تاقیکردنەوەی سەفین">
+    <meta name="theme-color" content="#0f172a">
+    <title>سیستەمی بەڕێوەبردنی هۆڵەکانی تاقیکردنەوە - ئامادەیی سەفین</title>
+
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- SheetJS (XLSX) CDN for Excel Import & Template Generation -->
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js"></script>
+
+    <!-- Google Fonts: Noto Sans Arabic -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Arabic:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['"Noto Sans Arabic"', 'sans-serif'],
+                    }
+                }
+            }
+        };
+    </script>
+
+    <style>
+        body {
+            font-family: 'Noto Sans Arabic', sans-serif;
+            background-color: #f1f5f9;
+            color: #0f172a;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #e2e8f0;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #94a3b8;
+            border-radius: 9999px;
+        }
+
+        /* Signature Canvas Touch Action */
+        canvas.sig-canvas {
+            touch-action: none;
+            cursor: crosshair;
+        }
+
+        /* A4 Screen Preview Framing */
+        .a4-page {
+            width: 210mm;
+            min-height: 297mm;
+            background: #ffffff;
+            margin: 0 auto 1.5rem auto;
+            padding: 8mm 10mm;
+            box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.12);
+            border: 1px solid #cbd5e1;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        @media (max-width: 850px) {
+            .a4-page {
+                width: 100%;
+                min-height: auto;
+                padding: 12px;
+            }
+        }
+
+        /* Strict Print Rules */
+        @media print {
+            @page {
+                size: A4 portrait;
+                margin: 8mm 10mm;
+            }
+            body {
+                background: #ffffff !important;
+                margin: 0 !important;
+                padding: 0 !important;
+            }
+            .no-print {
+                display: none !important;
+            }
+            #print-section-wrapper {
+                display: block !important;
+                position: static !important;
+                width: 100% !important;
+                padding: 0 !important;
+                margin: 0 !important;
+            }
+            .a4-page {
+                width: 100% !important;
+                min-height: 278mm !important;
+                max-height: 281mm !important;
+                margin: 0 !important;
+                padding: 0 !important;
+                box-shadow: none !important;
+                border: none !important;
+                page-break-after: always;
+                break-after: page;
+                overflow: hidden;
+            }
+            .a4-page:last-child {
+                page-break-after: auto;
+                break-after: auto;
+            }
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col">
+
+    <!-- Toast Notification Banner -->
+    <div id="toast-container" class="no-print fixed bottom-5 left-1/2 -translate-x-1/2 z-50 flex flex-col gap-2 pointer-events-none w-11/12 max-w-md"></div>
+
+    <!-- Fixed Floating Scroll-to-Top Button -->
+    <button type="button" id="scroll-to-top-btn" onclick="scrollToTopSmooth()" aria-label="گەڕانەوە بۆ سەرەوە" title="گەڕانەوە بۆ سەرەوە" class="no-print fixed bottom-5 left-5 z-40 w-12 h-12 rounded-full bg-indigo-600 hover:bg-indigo-500 active:scale-95 text-white shadow-xl border-2 border-white/80 flex items-center justify-center transition-all duration-200 opacity-0 pointer-events-none translate-y-3">
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M5 15l7-7 7 7"/>
+        </svg>
+    </button>
+
+    <!-- Top Header & Controls -->
+    <header class="no-print bg-slate-900 text-white shadow-lg sticky top-0 z-30 border-b border-slate-800">
+        <div class="max-w-7xl mx-auto px-3 sm:px-6 py-3">
+            <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
+                <!-- Title & Icon -->
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-indigo-600 flex items-center justify-center shrink-0 shadow-md">
+                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <h1 class="text-base sm:text-lg font-extrabold tracking-tight leading-snug">سیستەمی بەڕێوەبردنی هۆڵەکانی تاقیکردنەوە - ئامادەیی سەفین</h1>
+                        <p class="text-xs text-slate-400">تۆماری ئامادەبووان، چاودێران، گواستنەوەی خوێندکاران و ڕاپۆرتی A4</p>
+                    </div>
+                </div>
+
+                <!-- Date Picker & Global Action Buttons -->
+                <div class="flex flex-wrap items-center gap-2">
+                    <!-- Exam Date Selector -->
+                    <div class="flex items-center gap-1.5 bg-slate-800 border border-slate-700 rounded-xl px-2.5 py-1.5">
+                        <label for="exam-date-input" class="text-xs text-slate-300 font-semibold whitespace-nowrap">بەروار:</label>
+                        <input type="date" id="exam-date-input" class="bg-transparent text-white text-xs sm:text-sm font-bold focus:outline-none cursor-pointer">
+                    </div>
+
+                    <!-- View Switcher: Halls vs A4 Report -->
+                    <button type="button" id="btn-toggle-view" onclick="toggleMainView()" class="bg-emerald-600 hover:bg-emerald-500 active:scale-95 transition text-white text-xs sm:text-sm font-bold px-3.5 py-2 rounded-xl flex items-center gap-1.5 shadow-sm">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                        </svg>
+                        <span id="btn-toggle-view-text">ڕاپۆرتی کۆتایی ڕۆژ (A4)</span>
+                    </button>
+
+                    <!-- Direct Print A4 Button -->
+                    <button type="button" onclick="printA4Report()" class="bg-indigo-600 hover:bg-indigo-500 active:scale-95 transition text-white text-xs sm:text-sm font-bold px-3.5 py-2 rounded-xl flex items-center gap-1.5 shadow-sm">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/>
+                        </svg>
+                        <span>چاپکردنی ڕاپۆرتی A4</span>
+                    </button>
+
+                    <!-- JSON Export -->
+                    <button type="button" onclick="exportJSON()" class="bg-slate-800 hover:bg-slate-700 border border-slate-700 active:scale-95 transition text-slate-200 text-xs font-semibold px-3 py-2 rounded-xl flex items-center gap-1">
+                        <svg class="w-3.5 h-3.5 text-amber-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+                        </svg>
+                        <span>هەناردەکردنی پاشەکەوت JSON</span>
+                    </button>
+
+                    <!-- JSON Import -->
+                    <label class="bg-slate-800 hover:bg-slate-700 border border-slate-700 active:scale-95 transition text-slate-200 text-xs font-semibold px-3 py-2 rounded-xl flex items-center gap-1 cursor-pointer">
+                        <svg class="w-3.5 h-3.5 text-sky-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
+                        </svg>
+                        <span>هێنانەوەی پاشەکەوت JSON</span>
+                        <input type="file" id="json-import-input" accept=".json,application/json" class="hidden" onchange="importJSON(event)">
+                    </label>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Workspace (Halls & Management View) -->
+    <main id="workspace-view" class="no-print flex-1 max-w-7xl w-full mx-auto px-3 sm:px-6 py-5 space-y-5">
+
+        <!-- Top Global Search Bar for Students (Name, Grade, Section/Branch, Hall) -->
+        <section class="bg-white rounded-2xl shadow-sm border border-slate-200 p-4 sm:p-5">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3">
+                <div class="flex items-center gap-2">
+                    <span class="w-8 h-8 rounded-lg bg-sky-100 text-sky-700 flex items-center justify-center">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-4.35-4.35m0 0A7.5 7.5 0 104.5 4.5a7.5 7.5 0 0012.15 12.15z"/>
+                        </svg>
+                    </span>
+                    <div>
+                        <h2 class="text-sm sm:text-base font-extrabold text-slate-800">گەڕان بەدوای خوێندکاران لە هەموو کەرتەکاندا</h2>
+                        <p class="text-xs text-slate-500">بگەڕێ بەپێی ناوی خوێندکار، پۆل، لق / هۆبە، یان ناوی کەرت</p>
+                    </div>
+                </div>
+                <span id="global-search-count-badge" class="hidden text-xs font-extrabold bg-sky-50 text-sky-800 border border-sky-200 px-3 py-1 rounded-full self-start sm:self-auto"></span>
+            </div>
+
+            <div class="relative flex items-center gap-2">
+                <div class="relative flex-1">
+                    <input type="text" id="global-student-search-input" oninput="handleGlobalStudentSearch(this.value)" placeholder="نموونە: ئەحمەد ، ١٠ - ئا ، زانستی ، کەرتی ١..." class="w-full bg-slate-50 border border-slate-300 focus:bg-white rounded-xl pr-10 pl-4 py-2.5 text-xs sm:text-sm font-bold text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-500">
+                    <svg class="w-4 h-4 text-slate-400 absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-4.35-4.35m0 0A7.5 7.5 0 104.5 4.5a7.5 7.5 0 0012.15 12.15z"/>
+                    </svg>
+                </div>
+                <button type="button" id="clear-global-search-btn" onclick="clearGlobalStudentSearch()" class="hidden bg-slate-200 hover:bg-slate-300 active:scale-95 text-slate-800 text-xs sm:text-sm font-bold px-3.5 py-2.5 rounded-xl transition whitespace-nowrap">
+                    پاککردنەوەی گەڕان
+                </button>
+            </div>
+
+            <!-- Search Results Container -->
+            <div id="global-search-results" class="hidden mt-3.5 border-t border-slate-200 pt-3"></div>
+        </section>
+
+        <!-- Daily Exam Subjects Setup (Grades 10, 11, 12) -->
+        <section class="bg-white rounded-2xl shadow-sm border border-slate-200 p-4 sm:p-5">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3.5 pb-2.5 border-b border-slate-100">
+                <div class="flex items-center gap-2">
+                    <span class="w-8 h-8 rounded-lg bg-amber-100 text-amber-700 flex items-center justify-center font-bold">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
+                        </svg>
+                    </span>
+                    <div>
+                        <h2 class="text-sm sm:text-base font-extrabold text-slate-800">بابەتی تاقیکردنەوەی ئەمڕۆ بۆ پۆلەکانی (١٠ و ١١ و ١٢)</h2>
+                        <p class="text-xs text-slate-500">هەر گۆڕانکارییەک لێرەدا بکرێت، بە ئۆتۆماتیکی لە هەموو کەرتەکان و ڕاپۆرتی کۆتایی ڕۆژدا دەگۆڕێت</p>
+                    </div>
+                </div>
+                <span id="active-date-badge" class="text-xs font-bold bg-slate-100 text-slate-700 px-3 py-1 rounded-full self-start sm:self-auto"></span>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
+                <!-- Grade 10 Subject -->
+                <div class="bg-blue-50/70 border border-blue-200 rounded-xl p-3">
+                    <label for="subject-grade-10" class="block text-xs font-extrabold text-blue-900 mb-1.5">بابەتی پۆلی ١٠</label>
+                    <select id="subject-grade-10" onchange="updateDailySubject('10', this.value)" class="w-full bg-white border border-blue-300 rounded-lg px-3 py-2 text-sm font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500"></select>
+                </div>
+
+                <!-- Grade 11 Subject -->
+                <div class="bg-purple-50/70 border border-purple-200 rounded-xl p-3">
+                    <label for="subject-grade-11" class="block text-xs font-extrabold text-purple-900 mb-1.5">بابەتی پۆلی ١١</label>
+                    <select id="subject-grade-11" onchange="updateDailySubject('11', this.value)" class="w-full bg-white border border-purple-300 rounded-lg px-3 py-2 text-sm font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-purple-500"></select>
+                </div>
+
+                <!-- Grade 12 Subject -->
+                <div class="bg-emerald-50/70 border border-emerald-200 rounded-xl p-3">
+                    <label for="subject-grade-12" class="block text-xs font-extrabold text-emerald-900 mb-1.5">بابەتی پۆلی ١٢</label>
+                    <select id="subject-grade-12" onchange="updateDailySubject('12', this.value)" class="w-full bg-white border border-emerald-300 rounded-lg px-3 py-2 text-sm font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500"></select>
+                </div>
+            </div>
+        </section>
+
+        <!-- Teacher Bank & Subject Bank Collapsible Management Card -->
+        <section class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+            <button type="button" onclick="toggleBanksPanel()" class="w-full px-4 sm:px-5 py-3.5 bg-slate-50 hover:bg-slate-100 transition flex items-center justify-between text-right">
+                <div class="flex items-center gap-2.5">
+                    <span class="w-8 h-8 rounded-lg bg-indigo-100 text-indigo-700 flex items-center justify-center">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/>
+                        </svg>
+                    </span>
+                    <div>
+                        <h2 class="text-sm sm:text-base font-extrabold text-slate-800">بانکی ناوی مامۆستایان و بابەتەکان (زیادکردن بە تاک یان بە کۆمەڵ)</h2>
+                        <p class="text-xs text-slate-500">
+                            مامۆستایان: <span id="bank-teacher-count" class="font-bold text-indigo-600">0</span> |
+                            بابەتەکان: <span id="bank-subject-count" class="font-bold text-amber-600">0</span>
+                        </p>
+                    </div>
+                </div>
+                <svg id="banks-chevron" class="w-5 h-5 text-slate-500 transition-transform duration-200" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/>
+                </svg>
+            </button>
+
+            <div id="banks-panel-body" class="hidden p-4 sm:p-5 border-t border-slate-200 grid grid-cols-1 lg:grid-cols-2 gap-5">
+                <!-- Teacher Bank -->
+                <div class="bg-slate-50 rounded-xl p-4 border border-slate-200 flex flex-col justify-between space-y-3">
+                    <div>
+                        <h3 class="text-sm font-extrabold text-slate-800 mb-1">لیستی مامۆستایانی چاودێر</h3>
+                        <p class="text-xs text-slate-500 mb-2.5">دەتوانیت ناوی یەک مامۆستا یان چەند مامۆستایەک (هەر ناوێک لە دێڕێکدا) بنووسیت و زیادیان بکەیت:</p>
+                        <textarea id="bulk-teachers-input" rows="3" placeholder="نموونە:&#10;م. ئارام قادر ئەحمەد&#10;م. شیلان محەمەد عەلی&#10;م. کاروان حەسەن سەعید" class="w-full rounded-xl border border-slate-300 p-2.5 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white"></textarea>
+                        <button type="button" onclick="addBulkTeachers()" class="mt-2 w-full bg-indigo-600 hover:bg-indigo-500 text-white text-xs sm:text-sm font-bold py-2 rounded-xl transition">
+                            + زیادکردنی مامۆستاکان بۆ لیست
+                        </button>
+                    </div>
+                    <div>
+                        <div class="text-xs font-bold text-slate-600 mb-1.5">مامۆستایانی تۆمارکراو:</div>
+                        <div id="teacher-bank-list" class="max-h-40 overflow-y-auto flex flex-wrap gap-1.5 bg-white p-2.5 rounded-xl border border-slate-200"></div>
+                    </div>
+                </div>
+
+                <!-- Subject Bank -->
+                <div class="bg-slate-50 rounded-xl p-4 border border-slate-200 flex flex-col justify-between space-y-3">
+                    <div>
+                        <h3 class="text-sm font-extrabold text-slate-800 mb-1">لیستی بابەتەکانی تاقیکردنەوە</h3>
+                        <p class="text-xs text-slate-500 mb-2.5">دەتوانیت ناوی یەک بابەت یان چەند بابەتێک (هەر بابەتێک لە دێڕێکدا) بنووسیت و زیادیان بکەیت:</p>
+                        <textarea id="bulk-subjects-input" rows="3" placeholder="نموونە:&#10;زمانی کوردی&#10;زمانی عەرەبی&#10;زمانی ئینگلیزی&#10;بیرکاری&#10;فیزیا&#10;کیمیا&#10;زیندەوەرزانی" class="w-full rounded-xl border border-slate-300 p-2.5 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 bg-white"></textarea>
+                        <button type="button" onclick="addBulkSubjects()" class="mt-2 w-full bg-amber-600 hover:bg-amber-500 text-white text-xs sm:text-sm font-bold py-2 rounded-xl transition">
+                            + زیادکردنی بابەتەکان بۆ لیست
+                        </button>
+                    </div>
+                    <div>
+                        <div class="text-xs font-bold text-slate-600 mb-1.5">بابەتە تۆمارکراوەکان:</div>
+                        <div id="subject-bank-list" class="max-h-40 overflow-y-auto flex flex-wrap gap-1.5 bg-white p-2.5 rounded-xl border border-slate-200"></div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Summary Stats Bar & Add New Hall Control -->
+        <section class="grid grid-cols-2 lg:grid-cols-5 gap-3">
+            <div class="bg-white rounded-2xl p-3.5 border border-slate-200 shadow-sm flex items-center justify-between">
+                <div>
+                    <div class="text-xs text-slate-500 font-semibold">کۆی کەرتەکان</div>
+                    <div id="stat-total-halls" class="text-xl sm:text-2xl font-extrabold text-slate-900 mt-0.5">0</div>
+                </div>
+                <div class="w-10 h-10 rounded-xl bg-slate-100 text-slate-700 flex items-center justify-center font-extrabold">کەرت</div>
+            </div>
+
+            <div class="bg-white rounded-2xl p-3.5 border border-slate-200 shadow-sm flex items-center justify-between">
+                <div>
+                    <div class="text-xs text-slate-500 font-semibold">کۆی خوێندکاران</div>
+                    <div id="stat-total-students" class="text-xl sm:text-2xl font-extrabold text-indigo-600 mt-0.5">0</div>
+                </div>
+                <div class="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-2xl p-3.5 border border-emerald-200 shadow-sm flex items-center justify-between">
+                <div>
+                    <div class="text-xs text-emerald-700 font-semibold">ئامادەبووان (هاتوو)</div>
+                    <div id="stat-total-present" class="text-xl sm:text-2xl font-extrabold text-emerald-600 mt-0.5">0</div>
+                </div>
+                <div class="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-2xl p-3.5 border border-rose-200 shadow-sm flex items-center justify-between">
+                <div>
+                    <div class="text-xs text-rose-700 font-semibold">نەهاتووان</div>
+                    <div id="stat-total-absent" class="text-xl sm:text-2xl font-extrabold text-rose-600 mt-0.5">0</div>
+                </div>
+                <div class="w-10 h-10 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+                </div>
+            </div>
+
+            <!-- Add New Hall Form Box -->
+            <div class="col-span-2 lg:col-span-1 bg-slate-900 text-white rounded-2xl p-3.5 shadow-sm flex flex-col justify-center gap-2">
+                <div class="flex items-center gap-1.5">
+                    <input type="text" id="new-hall-name" placeholder="ناوی کەرت (نموونە: کەرتی ٣)" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                    <button type="button" onclick="addHall()" class="bg-indigo-600 hover:bg-indigo-500 active:scale-95 transition text-white text-xs font-extrabold px-3 py-2 rounded-xl whitespace-nowrap shrink-0">
+                        + کەرت
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- Halls / Sections Grid -->
+        <section id="halls-container" class="grid grid-cols-1 lg:grid-cols-2 gap-5"></section>
+
+    </main>
+
+    <!-- 2-Page A4 Report View (Shown on Toggle OR Automatically During Print) -->
+    <section id="print-section-wrapper" class="hidden flex-1 max-w-5xl w-full mx-auto px-2 sm:px-6 py-6">
+        <div class="no-print mb-4 bg-white rounded-2xl p-4 border border-slate-200 shadow-sm flex flex-wrap items-center justify-between gap-3">
+            <div>
+                <h2 class="text-base font-extrabold text-slate-900">پێشبینینی ڕاپۆرتی کۆتایی ڕۆژ (٢ پەڕەی A4)</h2>
+                <p class="text-xs text-slate-500">ڕاپۆرتەکە بە شێوەی ستوونی (Portrait) لەسەر دوو پەڕەی A4 ڕێکخراوە</p>
+            </div>
+            <div class="flex items-center gap-2">
+                <button type="button" onclick="toggleMainView()" class="bg-slate-200 hover:bg-slate-300 text-slate-800 text-xs sm:text-sm font-bold px-4 py-2 rounded-xl transition">
+                    گەڕانەوە بۆ کەرتەکان
+                </button>
+                <button type="button" onclick="printA4Report()" class="bg-indigo-600 hover:bg-indigo-500 text-white text-xs sm:text-sm font-bold px-4 py-2 rounded-xl flex items-center gap-1.5 shadow-sm transition">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/>
+                    </svg>
+                    <span>چاپکردنی ئێستا (Print)</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Rendered A4 Pages Container -->
+        <div id="a4-pages-container"></div>
+    </section>
+
+    <!-- ===================================================================== -->
+    <!-- MODAL 1: TRANSFER STUDENT BETWEEN HALLS                               -->
+    <!-- ===================================================================== -->
+    <div id="transfer-modal" class="no-print hidden fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl max-w-md w-full shadow-2xl border border-slate-200 overflow-hidden">
+            <div class="bg-slate-900 text-white px-5 py-3.5 flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                    <svg class="w-5 h-5 text-sky-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/>
+                    </svg>
+                    <h3 class="text-sm sm:text-base font-extrabold">گواستنەوەی خوێندکار بۆ کەرتێکی تر</h3>
+                </div>
+                <button type="button" onclick="closeTransferModal()" class="text-slate-400 hover:text-white p-1">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+                </button>
+            </div>
+
+            <div class="p-5 space-y-4">
+                <div class="bg-slate-50 border border-slate-200 rounded-xl p-3.5 space-y-1.5 text-xs sm:text-sm">
+                    <div class="flex justify-between">
+                        <span class="text-slate-500">ناوی خوێندکار:</span>
+                        <span id="transfer-student-name" class="font-extrabold text-slate-900"></span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-slate-500">پۆل و هۆبە:</span>
+                        <span id="transfer-student-grade" class="font-bold text-indigo-700"></span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-slate-500">کەرتی ئێستا:</span>
+                        <span id="transfer-source-hall" class="font-bold text-slate-700"></span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-slate-500">دۆخی ئەمڕۆ:</span>
+                        <span id="transfer-student-status" class="font-bold"></span>
+                    </div>
+                </div>
+
+                <div>
+                    <label for="transfer-target-hall-select" class="block text-xs font-extrabold text-slate-700 mb-1.5">کەرتی مەبەست هەڵبژێرە:</label>
+                    <select id="transfer-target-hall-select" class="w-full bg-white border border-slate-300 rounded-xl px-3.5 py-2.5 text-sm font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500"></select>
+                </div>
+
+                <div class="flex items-center justify-end gap-2 pt-2">
+                    <button type="button" onclick="closeTransferModal()" class="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs sm:text-sm font-bold transition">
+                        پاشگەزبوونەوە
+                    </button>
+                    <button type="button" onclick="confirmStudentTransfer()" class="px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs sm:text-sm font-extrabold shadow-sm transition">
+                        پشتڕاستکردنەوەی گواستنەوە
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===================================================================== -->
+    <!-- MODAL 2: BULK PASTE / EXCEL IMPORT STUDENTS FOR A HALL                -->
+    <!-- ===================================================================== -->
+    <div id="student-import-modal" class="no-print hidden fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl max-w-xl w-full shadow-2xl border border-slate-200 overflow-hidden flex flex-col max-h-[90vh]">
+            <div class="bg-slate-900 text-white px-5 py-3.5 flex items-center justify-between shrink-0">
+                <div>
+                    <h3 class="text-sm sm:text-base font-extrabold">زیادکردنی خوێندکاران بە کۆمەڵ یان فایلی ئێکسڵ</h3>
+                    <p id="import-modal-hall-title" class="text-xs text-indigo-300 mt-0.5"></p>
+                </div>
+                <button type="button" onclick="closeStudentImportModal()" class="text-slate-400 hover:text-white p-1">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+                </button>
+            </div>
+
+            <!-- Modal Tabs -->
+            <div class="grid grid-cols-2 border-b border-slate-200 bg-slate-50 shrink-0">
+                <button type="button" id="tab-btn-excel" onclick="switchImportTab('excel')" class="py-2.5 text-xs sm:text-sm font-extrabold border-b-2 border-indigo-600 text-indigo-700 bg-white">
+                    هاوردەکردن لە ئێکسڵ (Excel)
+                </button>
+                <button type="button" id="tab-btn-paste" onclick="switchImportTab('paste')" class="py-2.5 text-xs sm:text-sm font-bold border-b-2 border-transparent text-slate-600 hover:text-slate-900">
+                    نووسین / پەیستکردن بە کۆمەڵ
+                </button>
+            </div>
+
+            <div class="p-5 overflow-y-auto space-y-4">
+                <!-- Default Grade/Section Input -->
+                <div>
+                    <label for="import-default-grade" class="block text-xs font-extrabold text-slate-700 mb-1">پۆل و هۆبەی بنەڕەتی (ئەگەر لە فایل یان لیستەکەدا نەنووسرابێت):</label>
+                    <input type="text" id="import-default-grade" value="١٠ - ئا" placeholder="نموونە: ١٠ - ئا ، ١١ - ب ، ١٢ - ج" class="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                </div>
+
+                <!-- Tab 1: Excel Import -->
+                <div id="import-panel-excel" class="space-y-3">
+                    <div class="bg-emerald-50 border border-emerald-200 rounded-xl p-3 flex flex-wrap items-center justify-between gap-2">
+                        <div class="text-xs text-emerald-900">
+                            <span class="font-extrabold block">فایلی نموونەی ئێکسڵ دابگرە:</span>
+                            <span>ستوونەکان: (ناوی خوێندکار) و (پۆل و هۆبە)</span>
+                        </div>
+                        <button type="button" onclick="downloadSampleExcel()" class="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold px-3 py-2 rounded-xl flex items-center gap-1.5 shadow-xs">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                            <span>داگرتنی نموونەی ئێکسڵ</span>
+                        </button>
+                    </div>
+
+                    <label class="block border-2 border-dashed border-slate-300 hover:border-indigo-500 rounded-2xl p-5 text-center cursor-pointer transition bg-slate-50">
+                        <svg class="w-8 h-8 text-indigo-600 mx-auto mb-1.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
+                        </svg>
+                        <span class="text-xs sm:text-sm font-extrabold text-slate-800 block">فایلی ئێکسڵ هەڵبژێرە (.xlsx, .xls, .csv)</span>
+                        <span class="text-xs text-slate-500">ستوونەکانی ناو و پۆل بە شێوەی زیرەک دەناسرێنەوە</span>
+                        <input type="file" id="excel-file-input" accept=".xlsx,.xls,.csv" class="hidden" onchange="handleExcelFileSelect(event)">
+                    </label>
+
+                    <!-- Excel Preview Box -->
+                    <div id="excel-preview-wrapper" class="hidden space-y-2">
+                        <div class="flex items-center justify-between text-xs font-extrabold text-slate-700">
+                            <span>پێشبینینی خوێندکارە دۆزراوەکان (<span id="excel-preview-count" class="text-indigo-600">0</span>):</span>
+                        </div>
+                        <div id="excel-preview-list" class="max-h-44 overflow-y-auto border border-slate-200 rounded-xl divide-y divide-slate-100 text-xs bg-white"></div>
+                        <button type="button" onclick="confirmExcelImport()" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white text-xs sm:text-sm font-extrabold py-2.5 rounded-xl shadow-sm transition">
+                            پشتڕاستکردنەوە و زیادکردنی هەمووان
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Tab 2: Bulk Paste -->
+                <div id="import-panel-paste" class="hidden space-y-3">
+                    <p class="text-xs text-slate-500">ناوی خوێندکاران بنووسە (هەر خوێندکارێک لە دێڕێکدا). دەتوانیت پۆلەکەشی لە تەنیشت بنووسیت بە نیشانەی ( - ) یان ( , ):</p>
+                    <textarea id="bulk-students-textarea" rows="6" placeholder="نموونە:&#10;ئەحمەد سەردار عەلی - ١٠ - ئا&#10;سارا محەمەد قادر - ١١ - ب&#10;هێمن عوسمان حەسەن" class="w-full rounded-xl border border-slate-300 p-3 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"></textarea>
+                    <button type="button" onclick="confirmBulkPasteStudents()" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white text-xs sm:text-sm font-extrabold py-2.5 rounded-xl shadow-sm transition">
+                        + زیادکردنی خوێندکاران
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===================================================================== -->
+    <!-- MODAL 3: CONFIRMATION DIALOG (REPLACES window.confirm)                -->
+    <!-- ===================================================================== -->
+    <div id="confirm-modal" class="no-print hidden fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl max-w-sm w-full shadow-2xl border border-slate-200 p-5 space-y-4">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-full bg-rose-100 text-rose-600 flex items-center justify-center shrink-0">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+                </div>
+                <div>
+                    <h3 class="text-sm font-extrabold text-slate-900">دڵنیاکردنەوەی سڕینەوە</h3>
+                    <p id="confirm-modal-message" class="text-xs text-slate-600 mt-0.5"></p>
+                </div>
+            </div>
+            <div class="flex items-center justify-end gap-2">
+                <button type="button" onclick="closeConfirmModal()" class="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold">پاشگەزبوونەوە</button>
+                <button type="button" id="confirm-modal-yes-btn" class="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-extrabold">بەڵێ، بیسڕەوە</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===================================================================== -->
+    <!-- JAVASCRIPT APPLICATION LOGIC                                          -->
+    <!-- ===================================================================== -->
+    <script>
+        const STORAGE_KEY = 'safin_high_school_exam_app_v1';
+
+        function getTodayStr() {
+            const now = new Date();
+            const y = now.getFullYear();
+            const m = String(now.getMonth() + 1).padStart(2, '0');
+            const d = String(now.getDate()).padStart(2, '0');
+            return `${y}-${m}-${d}`;
+        }
+
+        function generateId(prefix = 'id') {
+            return `${prefix}_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+        }
+
+        function escapeHtml(str) {
+            if (str === null || str === undefined) return '';
+            return String(str)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
+
+        // Convert Eastern Arabic/Kurdish digits to Western digits for grade detection
+        function normalizeDigits(str) {
+            if (!str) return '';
+            const map = { '٠': '0', '١': '1', '٢': '2', '٣': '3', '٤': '4', '٥': '5', '٦': '6', '٧': '7', '٨': '8', '٩': '9' };
+            return String(str).replace(/[٠-٩]/g, ch => map[ch] || ch);
+        }
+
+        // Detect grade level ('10', '11', '12', or 'other') from student grade string
+        function detectGradeLevel(gradeStr) {
+            const norm = normalizeDigits(gradeStr);
+            if (/\b10\b/.test(norm) || norm.includes('10')) return '10';
+            if (/\b11\b/.test(norm) || norm.includes('11')) return '11';
+            if (/\b12\b/.test(norm) || norm.includes('12')) return '12';
+            return 'other';
+        }
+
+        // Default Initial Data for Safin High School
+        function createDefaultState() {
+            const today = getTodayStr();
+            return {
+                selectedDate: today,
+                teachers: [
+                    'م. ئارام قادر ئەحمەد',
+                    'م. شیلان محەمەد عەلی',
+                    'م. کاروان حەسەن سەعید',
+                    'م. ڕێباز عوسمان تاهیر'
+                ],
+                subjects: [
+                    'زمانی کوردی',
+                    'زمانی عەرەبی',
+                    'زمانی ئینگلیزی',
+                    'بیرکاری',
+                    'فیزیا',
+                    'کیمیا',
+                    'زیندەوەرزانی',
+                    'کۆمپیوتەر'
+                ],
+                halls: [
+                    {
+                        id: 'hall_1',
+                        name: 'کەرتی ١',
+                        students: [
+                            { id: 'st_101', name: 'ئەحمەد سەردار عەلی', grade: '١٠ - ئا' },
+                            { id: 'st_102', name: 'سارا محەمەد قادر', grade: '١٠ - ب' },
+                            { id: 'st_103', name: 'دارا عوسمان حەسەن', grade: '١١ - ئا' },
+                            { id: 'st_104', name: 'لاڤە کامەران سالح', grade: '١٢ - ئا' }
+                        ]
+                    },
+                    {
+                        id: 'hall_2',
+                        name: 'کەرتی ٢',
+                        students: [
+                            { id: 'st_201', name: 'هێمن فەرهاد مستەفا', grade: '١٠ - ج' },
+                            { id: 'st_202', name: 'نارین جەمال ڕەشید', grade: '١١ - ب' },
+                            { id: 'st_203', name: 'بڕوا هێرش مەحمود', grade: '١٢ - ب' }
+                        ]
+                    }
+                ],
+                records: {
+                    [today]: {
+                        dailySubjects: {
+                            '10': 'زمانی کوردی',
+                            '11': 'بیرکاری',
+                            '12': 'فیزیا'
+                        },
+                        hallSupervisors: {
+                            'hall_1': 'م. ئارام قادر ئەحمەد',
+                            'hall_2': 'م. شیلان محەمەد عەلی'
+                        },
+                        hallSignatures: {},
+                        attendance: {
+                            'st_103': 'absent'
+                        }
+                    }
+                }
+            };
+        }
+
+        // Safely sanitize loaded or imported state so missing arrays/objects never throw
+        function sanitizeState(rawObj) {
+            const fallback = createDefaultState();
+            if (!rawObj || typeof rawObj !== 'object') return fallback;
+
+            const safeDate = (typeof rawObj.selectedDate === 'string' && rawObj.selectedDate.trim())
+                ? rawObj.selectedDate.trim()
+                : getTodayStr();
+
+            const safeTeachers = Array.isArray(rawObj.teachers)
+                ? rawObj.teachers.map(t => String(t || '').trim()).filter(Boolean)
+                : fallback.teachers;
+
+            const safeSubjects = Array.isArray(rawObj.subjects)
+                ? rawObj.subjects.map(s => String(s || '').trim()).filter(Boolean)
+                : fallback.subjects;
+
+            const safeHalls = Array.isArray(rawObj.halls)
+                ? rawObj.halls
+                    .filter(h => h && typeof h === 'object')
+                    .map((h, idx) => ({
+                        id: String(h.id || generateId(`hall_${idx}`)),
+                        name: String(h.name || `کەرتی ${idx + 1}`).trim(),
+                        students: Array.isArray(h.students)
+                            ? h.students
+                                .filter(s => s && typeof s === 'object' && String(s.name || '').trim())
+                                .map((s, sIdx) => ({
+                                    id: String(s.id || generateId(`st_${idx}_${sIdx}`)),
+                                    name: String(s.name || '').trim(),
+                                    grade: String(s.grade || '١٠ - ئا').trim()
+                                }))
+                            : []
+                    }))
+                : [];
+
+            const safeRecords = {};
+            if (rawObj.records && typeof rawObj.records === 'object') {
+                Object.keys(rawObj.records).forEach(dateKey => {
+                    const r = rawObj.records[dateKey];
+                    if (!r || typeof r !== 'object') return;
+                    const ds = (r.dailySubjects && typeof r.dailySubjects === 'object') ? r.dailySubjects : {};
+                    safeRecords[dateKey] = {
+                        dailySubjects: {
+                            '10': String(ds['10'] || '').trim(),
+                            '11': String(ds['11'] || '').trim(),
+                            '12': String(ds['12'] || '').trim()
+                        },
+                        hallSupervisors: (r.hallSupervisors && typeof r.hallSupervisors === 'object') ? { ...r.hallSupervisors } : {},
+                        hallSignatures: (r.hallSignatures && typeof r.hallSignatures === 'object') ? { ...r.hallSignatures } : {},
+                        attendance: (r.attendance && typeof r.attendance === 'object') ? { ...r.attendance } : {}
+                    };
+                });
+            }
+
+            return {
+                selectedDate: safeDate,
+                teachers: safeTeachers,
+                subjects: safeSubjects,
+                halls: safeHalls,
+                records: safeRecords
+            };
+        }
+
+        function loadState() {
+            try {
+                const raw = localStorage.getItem(STORAGE_KEY);
+                if (raw) {
+                    const parsed = JSON.parse(raw);
+                    if (parsed && typeof parsed === 'object') {
+                        return sanitizeState(parsed);
+                    }
+                }
+            } catch (e) {
+                console.error('Error reading localStorage:', e);
+            }
+            const def = createDefaultState();
+            saveState(def);
+            return def;
+        }
+
+        let appState = loadState();
+        let isReportView = false;
+        let hallSearchQueries = {};
+        let transferContext = null;
+        let importTargetHallId = null;
+        let parsedExcelRows = [];
+        let confirmCallback = null;
+        let globalSearchQuery = '';
+
+        function saveState(stateObj = appState) {
+            try {
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(stateObj));
+            } catch (e) {
+                console.error('Error saving localStorage:', e);
+                showToast('ئاگاداری: نەتوانرا داتاکان پاشەکەوت بکرێن', 'error');
+            }
+        }
+
+        function getDateRecord(dateStr = appState.selectedDate) {
+            if (!appState.records || typeof appState.records !== 'object') {
+                appState.records = {};
+            }
+            if (!appState.records[dateStr] || typeof appState.records[dateStr] !== 'object') {
+                appState.records[dateStr] = {
+                    dailySubjects: { '10': '', '11': '', '12': '' },
+                    hallSupervisors: {},
+                    hallSignatures: {},
+                    attendance: {}
+                };
+            }
+            const rec = appState.records[dateStr];
+            if (!rec.dailySubjects || typeof rec.dailySubjects !== 'object') {
+                rec.dailySubjects = { '10': '', '11': '', '12': '' };
+            }
+            if (!rec.hallSupervisors || typeof rec.hallSupervisors !== 'object') rec.hallSupervisors = {};
+            if (!rec.hallSignatures || typeof rec.hallSignatures !== 'object') rec.hallSignatures = {};
+            if (!rec.attendance || typeof rec.attendance !== 'object') rec.attendance = {};
+            return rec;
+        }
+
+        function showToast(message, type = 'success') {
+            const container = document.getElementById('toast-container');
+            if (!container) return;
+            const toast = document.createElement('div');
+            const bgClass = type === 'error' ? 'bg-rose-700 border-rose-500' : 'bg-slate-900 border-slate-700';
+            toast.className = `${bgClass} text-white border px-4 py-3 rounded-2xl shadow-xl text-xs sm:text-sm font-bold flex items-center justify-between gap-2 transition-all duration-300`;
+            toast.innerHTML = `<span>${escapeHtml(message)}</span>`;
+            container.appendChild(toast);
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                setTimeout(() => toast.remove(), 300);
+            }, 2600);
+        }
+
+        function openConfirmModal(message, onConfirm) {
+            document.getElementById('confirm-modal-message').textContent = message;
+            confirmCallback = onConfirm;
+            document.getElementById('confirm-modal').classList.remove('hidden');
+        }
+
+        function closeConfirmModal() {
+            document.getElementById('confirm-modal').classList.add('hidden');
+            confirmCallback = null;
+        }
+
+        document.getElementById('confirm-modal-yes-btn').addEventListener('click', () => {
+            if (typeof confirmCallback === 'function') {
+                confirmCallback();
+            }
+            closeConfirmModal();
+        });
+
+        // =====================================================================
+        // INITIALIZATION & RENDERING
+        // =====================================================================
+        function initApp() {
+            try {
+                if (!Array.isArray(appState.halls)) appState.halls = [];
+                if (!Array.isArray(appState.teachers)) appState.teachers = [];
+                if (!Array.isArray(appState.subjects)) appState.subjects = [];
+                if (!appState.selectedDate) appState.selectedDate = getTodayStr();
+
+                const dateInput = document.getElementById('exam-date-input');
+                if (dateInput) {
+                    dateInput.value = appState.selectedDate;
+                    dateInput.addEventListener('change', (e) => {
+                        if (!e.target.value) return;
+                        appState.selectedDate = e.target.value;
+                        saveState();
+                        renderAll();
+                        showToast(`بەروار گۆڕدرا بۆ: ${appState.selectedDate}`);
+                    });
+                }
+
+                renderAll();
+            } catch (err) {
+                console.error('Error initializing app:', err);
+                appState = createDefaultState();
+                saveState();
+                renderAll();
+            }
+        }
+
+        function renderAll() {
+            try {
+                const badge = document.getElementById('active-date-badge');
+                if (badge) badge.textContent = `بەرواری چالاک: ${appState.selectedDate}`;
+                renderDailySubjectsSection();
+                renderBanksSection();
+                renderStatsBar();
+                renderHalls();
+                renderGlobalSearchResults();
+                if (isReportView) {
+                    renderA4Report();
+                }
+            } catch (err) {
+                console.error('Error rendering UI:', err);
+                showToast('کێشەیەک لە پیشاندانی داتاکان ڕوویدا', 'error');
+            }
+        }
+
+        // =====================================================================
+        // GLOBAL STUDENT SEARCH & SCROLL TO TOP
+        // =====================================================================
+        function handleGlobalStudentSearch(val) {
+            globalSearchQuery = val || '';
+            const clearBtn = document.getElementById('clear-global-search-btn');
+            if (clearBtn) {
+                if (globalSearchQuery.trim()) {
+                    clearBtn.classList.remove('hidden');
+                } else {
+                    clearBtn.classList.add('hidden');
+                }
+            }
+            renderGlobalSearchResults();
+        }
+
+        function clearGlobalStudentSearch() {
+            globalSearchQuery = '';
+            const input = document.getElementById('global-student-search-input');
+            if (input) input.value = '';
+            const clearBtn = document.getElementById('clear-global-search-btn');
+            if (clearBtn) clearBtn.classList.add('hidden');
+            renderGlobalSearchResults();
+        }
+
+        function renderGlobalSearchResults() {
+            const resultsBox = document.getElementById('global-search-results');
+            const badge = document.getElementById('global-search-count-badge');
+            if (!resultsBox || !badge) return;
+
+            const q = normalizeDigits(globalSearchQuery.trim().toLowerCase());
+
+            if (!q) {
+                resultsBox.classList.add('hidden');
+                resultsBox.innerHTML = '';
+                badge.classList.add('hidden');
+                return;
+            }
+
+            const rec = getDateRecord();
+            const matches = [];
+
+            (appState.halls || []).forEach(hall => {
+                const hallNameNorm = normalizeDigits((hall.name || '').toLowerCase());
+                const hallMatches = hallNameNorm.includes(q);
+
+                (hall.students || []).forEach(st => {
+                    const stNameNorm = normalizeDigits((st.name || '').toLowerCase());
+                    const stGradeNorm = normalizeDigits((st.grade || '').toLowerCase());
+                    if (stNameNorm.includes(q) || stGradeNorm.includes(q) || hallMatches) {
+                        matches.push({
+                            student: st,
+                            hall,
+                            isAbsent: rec.attendance[st.id] === 'absent'
+                        });
+                    }
+                });
+            });
+
+            badge.textContent = `ئەنجامەکان: ${matches.length}`;
+            badge.classList.remove('hidden');
+            resultsBox.classList.remove('hidden');
+
+            if (matches.length === 0) {
+                resultsBox.innerHTML = `
+                    <div class="p-4 rounded-xl bg-slate-50 border border-slate-200 text-center text-xs sm:text-sm font-bold text-slate-500">
+                        هیچ خوێندکارێک بەم زانیارییە (${escapeHtml(globalSearchQuery.trim())}) نەدۆزرایەوە.
+                    </div>
+                `;
+                return;
+            }
+
+            resultsBox.innerHTML = `
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-2.5 max-h-80 overflow-y-auto pr-0.5">
+                    ${matches.map(item => {
+                        const statusBadge = item.isAbsent
+                            ? `<span class="text-[11px] font-extrabold bg-rose-100 text-rose-700 border border-rose-200 px-2 py-0.5 rounded-md">نەهاتوو</span>`
+                            : `<span class="text-[11px] font-extrabold bg-emerald-100 text-emerald-700 border border-emerald-200 px-2 py-0.5 rounded-md">هاتوو</span>`;
+
+                        return `
+                        <div class="p-3 rounded-xl bg-slate-50 hover:bg-sky-50/50 border border-slate-200 flex items-center justify-between gap-2 transition">
+                            <div class="min-w-0 space-y-1">
+                                <div class="flex items-center gap-1.5 flex-wrap">
+                                    <span class="text-xs sm:text-sm font-extrabold text-slate-900 truncate">${escapeHtml(item.student.name)}</span>
+                                    ${statusBadge}
+                                </div>
+                                <div class="flex items-center gap-1.5 flex-wrap text-[11px] font-bold">
+                                    <span class="bg-white text-indigo-700 border border-indigo-200 px-2 py-0.5 rounded-md">${escapeHtml(item.student.grade || '—')}</span>
+                                    <span class="bg-slate-800 text-white px-2 py-0.5 rounded-md">${escapeHtml(item.hall.name)}</span>
+                                </div>
+                            </div>
+
+                            <div class="flex items-center gap-1.5 shrink-0">
+                                <button type="button" onclick="jumpToHall('${item.hall.id}')" class="bg-indigo-600 hover:bg-indigo-500 active:scale-95 text-white text-[11px] font-extrabold px-2.5 py-1.5 rounded-lg transition">
+                                    کردنەوەی کەرت
+                                </button>
+                                <button type="button" onclick="openTransferModal('${item.hall.id}', '${item.student.id}')" class="bg-sky-100 hover:bg-sky-600 text-sky-800 hover:text-white active:scale-95 text-[11px] font-extrabold px-2.5 py-1.5 rounded-lg transition flex items-center gap-1" title="گواستنەوە بۆ کەرتێکی تر">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/>
+                                    </svg>
+                                    <span>گواستنەوە</span>
+                                </button>
+                            </div>
+                        </div>
+                        `;
+                    }).join('')}
+                </div>
+            `;
+        }
+
+        function jumpToHall(hallId) {
+            if (isReportView) {
+                toggleMainView();
+            }
+            setTimeout(() => {
+                const el = document.getElementById(`hall-card-${hallId}`);
+                if (el) {
+                    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    el.classList.add('ring-4', 'ring-sky-400');
+                    setTimeout(() => {
+                        el.classList.remove('ring-4', 'ring-sky-400');
+                    }, 1600);
+                }
+            }, 80);
+        }
+
+        function scrollToTopSmooth() {
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function updateScrollTopVisibility() {
+            const btn = document.getElementById('scroll-to-top-btn');
+            if (!btn) return;
+            if (window.scrollY > 220) {
+                btn.classList.remove('opacity-0', 'pointer-events-none', 'translate-y-3');
+                btn.classList.add('opacity-100', 'pointer-events-auto', 'translate-y-0');
+            } else {
+                btn.classList.add('opacity-0', 'pointer-events-none', 'translate-y-3');
+                btn.classList.remove('opacity-100', 'pointer-events-auto', 'translate-y-0');
+            }
+        }
+
+        window.addEventListener('scroll', updateScrollTopVisibility, { passive: true });
+
+        // =====================================================================
+        // 1. DAILY SUBJECTS PER GRADE (10, 11, 12)
+        // =====================================================================
+        function renderDailySubjectsSection() {
+            const rec = getDateRecord();
+            const grades = ['10', '11', '12'];
+            grades.forEach(g => {
+                const selectEl = document.getElementById(`subject-grade-${g}`);
+                if (!selectEl) return;
+                const currentVal = rec.dailySubjects[g] || '';
+                let optionsHtml = `<option value="">-- هەڵبژاردنی بابەت --</option>`;
+                (appState.subjects || []).forEach(subj => {
+                    const selected = subj === currentVal ? 'selected' : '';
+                    optionsHtml += `<option value="${escapeHtml(subj)}" ${selected}>${escapeHtml(subj)}</option>`;
+                });
+                if (currentVal && !(appState.subjects || []).includes(currentVal)) {
+                    optionsHtml += `<option value="${escapeHtml(currentVal)}" selected>${escapeHtml(currentVal)}</option>`;
+                }
+                selectEl.innerHTML = optionsHtml;
+            });
+        }
+
+        function updateDailySubject(grade, subjectName) {
+            const rec = getDateRecord();
+            rec.dailySubjects[grade] = subjectName;
+            saveState();
+            renderHalls();
+            if (isReportView) renderA4Report();
+            showToast(`بابەتی پۆلی ${grade} نوێکرایەوە بۆ: ${subjectName || 'بەتاڵ'}`);
+        }
+
+        // =====================================================================
+        // 2. TEACHER BANK & SUBJECT BANK (SINGLE & BULK ADD)
+        // =====================================================================
+        function toggleBanksPanel() {
+            const body = document.getElementById('banks-panel-body');
+            const chevron = document.getElementById('banks-chevron');
+            if (!body) return;
+            body.classList.toggle('hidden');
+            if (chevron) chevron.classList.toggle('rotate-180');
+        }
+
+        function renderBanksSection() {
+            const teachers = appState.teachers || [];
+            const subjects = appState.subjects || [];
+
+            const tCount = document.getElementById('bank-teacher-count');
+            const sCount = document.getElementById('bank-subject-count');
+            if (tCount) tCount.textContent = teachers.length;
+            if (sCount) sCount.textContent = subjects.length;
+
+            const tListEl = document.getElementById('teacher-bank-list');
+            if (tListEl) {
+                if (teachers.length === 0) {
+                    tListEl.innerHTML = `<span class="text-xs text-slate-400">هیچ مامۆستایەک زیاد نەکراوە</span>`;
+                } else {
+                    tListEl.innerHTML = teachers.map((t, idx) => `
+                        <span class="inline-flex items-center gap-1.5 bg-indigo-50 text-indigo-900 border border-indigo-200 px-2.5 py-1 rounded-lg text-xs font-bold">
+                            <span>${escapeHtml(t)}</span>
+                            <button type="button" onclick="removeTeacherFromBank(${idx})" class="text-indigo-400 hover:text-rose-600 font-extrabold" title="سڕینەوە">×</button>
+                        </span>
+                    `).join('');
+                }
+            }
+
+            const sListEl = document.getElementById('subject-bank-list');
+            if (sListEl) {
+                if (subjects.length === 0) {
+                    sListEl.innerHTML = `<span class="text-xs text-slate-400">هیچ بابەتێک زیاد نەکراوە</span>`;
+                } else {
+                    sListEl.innerHTML = subjects.map((s, idx) => `
+                        <span class="inline-flex items-center gap-1.5 bg-amber-50 text-amber-900 border border-amber-200 px-2.5 py-1 rounded-lg text-xs font-bold">
+                            <span>${escapeHtml(s)}</span>
+                            <button type="button" onclick="removeSubjectFromBank(${idx})" class="text-amber-500 hover:text-rose-600 font-extrabold" title="سڕینەوە">×</button>
+                        </span>
+                    `).join('');
+                }
+            }
+        }
+
+        function addBulkTeachers() {
+            const textarea = document.getElementById('bulk-teachers-input');
+            if (!textarea) return;
+            const lines = textarea.value.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+            if (lines.length === 0) {
+                showToast('تکایە ناوی مامۆستا بنووسە', 'error');
+                return;
+            }
+            if (!Array.isArray(appState.teachers)) appState.teachers = [];
+            let added = 0;
+            lines.forEach(name => {
+                if (!appState.teachers.includes(name)) {
+                    appState.teachers.push(name);
+                    added++;
+                }
+            });
+            textarea.value = '';
+            saveState();
+            renderAll();
+            showToast(`${added} ناوی مامۆستا زیادکرا`);
+        }
+
+        function removeTeacherFromBank(index) {
+            if (!Array.isArray(appState.teachers)) return;
+            appState.teachers.splice(index, 1);
+            saveState();
+            renderAll();
+            showToast('ناوی مامۆستا سڕایەوە');
+        }
+
+        function addBulkSubjects() {
+            const textarea = document.getElementById('bulk-subjects-input');
+            if (!textarea) return;
+            const lines = textarea.value.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+            if (lines.length === 0) {
+                showToast('تکایە ناوی بابەت بنووسە', 'error');
+                return;
+            }
+            if (!Array.isArray(appState.subjects)) appState.subjects = [];
+            let added = 0;
+            lines.forEach(subj => {
+                if (!appState.subjects.includes(subj)) {
+                    appState.subjects.push(subj);
+                    added++;
+                }
+            });
+            textarea.value = '';
+            saveState();
+            renderAll();
+            showToast(`${added} بابەت زیادکرا`);
+        }
+
+        function removeSubjectFromBank(index) {
+            if (!Array.isArray(appState.subjects)) return;
+            appState.subjects.splice(index, 1);
+            saveState();
+            renderAll();
+            showToast('بابەت سڕایەوە');
+        }
+
+        // =====================================================================
+        // 3. SUMMARY STATS BAR
+        // =====================================================================
+        function renderStatsBar() {
+            const rec = getDateRecord();
+            let totalStudents = 0;
+            let totalAbsent = 0;
+
+            (appState.halls || []).forEach(hall => {
+                const stList = Array.isArray(hall.students) ? hall.students : [];
+                totalStudents += stList.length;
+                stList.forEach(st => {
+                    if (rec.attendance[st.id] === 'absent') {
+                        totalAbsent++;
+                    }
+                });
+            });
+
+            const totalPresent = totalStudents - totalAbsent;
+            const hallsEl = document.getElementById('stat-total-halls');
+            const totalEl = document.getElementById('stat-total-students');
+            const presentEl = document.getElementById('stat-total-present');
+            const absentEl = document.getElementById('stat-total-absent');
+
+            if (hallsEl) hallsEl.textContent = (appState.halls || []).length;
+            if (totalEl) totalEl.textContent = totalStudents;
+            if (presentEl) presentEl.textContent = totalPresent;
+            if (absentEl) absentEl.textContent = totalAbsent;
+        }
+
+        // =====================================================================
+        // 4. HALL MANAGEMENT & RENDERING
+        // =====================================================================
+        function addHall() {
+            const input = document.getElementById('new-hall-name');
+            if (!input) return;
+            const name = input.value.trim();
+            if (!name) {
+                showToast('تکایە ناوی کەرت بنووسە', 'error');
+                return;
+            }
+            if (!Array.isArray(appState.halls)) appState.halls = [];
+            appState.halls.push({
+                id: generateId('hall'),
+                name,
+                students: []
+            });
+            input.value = '';
+            saveState();
+            renderAll();
+            showToast(`${name} زیادکرا`);
+        }
+
+        function deleteHall(hallId) {
+            const hall = (appState.halls || []).find(h => h.id === hallId);
+            if (!hall) return;
+            openConfirmModal(`ئایا دڵنیایت لە سڕینەوەی (${hall.name}) و هەموو خوێندکارەکانی ناوی؟`, () => {
+                appState.halls = (appState.halls || []).filter(h => h.id !== hallId);
+                saveState();
+                renderAll();
+                showToast(`${hall.name} سڕایەوە`);
+            });
+        }
+
+        function assignHallSupervisor(hallId, teacherName) {
+            const rec = getDateRecord();
+            rec.hallSupervisors[hallId] = teacherName;
+            saveState();
+            if (isReportView) renderA4Report();
+            showToast(`مامۆستای چاودێر دیاریکرا: ${teacherName || 'دیاری نەکراوە'}`);
+        }
+
+        function getHallSubjectBreakdown(hall) {
+            const rec = getDateRecord();
+            const counts = { '10': 0, '11': 0, '12': 0, 'other': 0 };
+            (hall.students || []).forEach(st => {
+                const lvl = detectGradeLevel(st.grade);
+                counts[lvl] = (counts[lvl] || 0) + 1;
+            });
+
+            const subjectGroups = {};
+            const gradeDetails = [];
+
+            if (counts['10'] > 0) {
+                const subj = rec.dailySubjects['10'] || 'بابەتی پۆلی ١٠ دیاری نەکراوە';
+                subjectGroups[subj] = (subjectGroups[subj] || 0) + counts['10'];
+                gradeDetails.push({ gradeLabel: 'پۆلی ١٠', subject: subj, count: counts['10'] });
+            }
+            if (counts['11'] > 0) {
+                const subj = rec.dailySubjects['11'] || 'بابەتی پۆلی ١١ دیاری نەکراوە';
+                subjectGroups[subj] = (subjectGroups[subj] || 0) + counts['11'];
+                gradeDetails.push({ gradeLabel: 'پۆلی ١١', subject: subj, count: counts['11'] });
+            }
+            if (counts['12'] > 0) {
+                const subj = rec.dailySubjects['12'] || 'بابەتی پۆلی ١٢ دیاری نەکراوە';
+                subjectGroups[subj] = (subjectGroups[subj] || 0) + counts['12'];
+                gradeDetails.push({ gradeLabel: 'پۆلی ١٢', subject: subj, count: counts['12'] });
+            }
+            if (counts['other'] > 0) {
+                const subj = 'بابەتی گشتی';
+                subjectGroups[subj] = (subjectGroups[subj] || 0) + counts['other'];
+                gradeDetails.push({ gradeLabel: 'پۆلەکانی تر', subject: subj, count: counts['other'] });
+            }
+
+            return { counts, subjectGroups, gradeDetails };
+        }
+
+        function renderHalls() {
+            const container = document.getElementById('halls-container');
+            if (!container) return;
+            const rec = getDateRecord();
+            const halls = appState.halls || [];
+
+            if (halls.length === 0) {
+                container.innerHTML = `
+                    <div class="col-span-full bg-white rounded-2xl border border-dashed border-slate-300 p-10 text-center">
+                        <p class="text-sm font-bold text-slate-600">هیچ کەرتێکی تاقیکردنەوە تۆمار نەکراوە. لە سەرەوە ناوی کەرتێک بنووسە و زیادی بکە.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = halls.map(hall => {
+                const students = Array.isArray(hall.students) ? hall.students : [];
+                const total = students.length;
+                let absentCount = 0;
+                students.forEach(st => {
+                    if (rec.attendance[st.id] === 'absent') absentCount++;
+                });
+                const presentCount = total - absentCount;
+
+                const assignedSup = rec.hallSupervisors[hall.id] || '';
+                const sigDataUrl = rec.hallSignatures[hall.id] || '';
+                const { gradeDetails } = getHallSubjectBreakdown(hall);
+                const query = (hallSearchQueries[hall.id] || '').trim().toLowerCase();
+
+                const filteredStudents = query
+                    ? students.filter(st => (st.name || '').toLowerCase().includes(query) || (st.grade || '').toLowerCase().includes(query))
+                    : students;
+
+                let teacherOptions = `<option value="">-- یەک مامۆستای چاودێر هەڵبژێرە --</option>`;
+                (appState.teachers || []).forEach(t => {
+                    const sel = t === assignedSup ? 'selected' : '';
+                    teacherOptions += `<option value="${escapeHtml(t)}" ${sel}>${escapeHtml(t)}</option>`;
+                });
+                if (assignedSup && !(appState.teachers || []).includes(assignedSup)) {
+                    teacherOptions += `<option value="${escapeHtml(assignedSup)}" selected>${escapeHtml(assignedSup)}</option>`;
+                }
+
+                const subjectBadgesHtml = gradeDetails.length > 0
+                    ? gradeDetails.map(gd => `
+                        <span class="inline-flex items-center gap-1 bg-indigo-50 text-indigo-900 border border-indigo-200 px-2.5 py-1 rounded-lg text-xs font-bold">
+                            <span>${escapeHtml(gd.gradeLabel)}:</span>
+                            <span class="text-indigo-700">${escapeHtml(gd.subject)}</span>
+                            <span class="bg-indigo-600 text-white px-1.5 py-0.2 rounded-md text-[11px]">${gd.count}</span>
+                        </span>
+                    `).join('')
+                    : `<span class="text-xs text-slate-400">هیچ خوێندکارێک لەم کەرتەدا نییە</span>`;
+
+                return `
+                <article id="hall-card-${hall.id}" class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden flex flex-col transition-all duration-300">
+                    <!-- Hall Card Header -->
+                    <div class="bg-slate-800 text-white px-4 py-3 flex items-center justify-between gap-2">
+                        <div class="flex items-center gap-2.5">
+                            <span class="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center font-extrabold text-sm">${escapeHtml(hall.name.replace(/\D/g, '') || '#')}</span>
+                            <div>
+                                <h3 class="text-base font-extrabold">${escapeHtml(hall.name)}</h3>
+                                <div class="flex items-center gap-2 text-xs text-slate-300">
+                                    <span>کۆی گشتی: <strong class="text-white">${total}</strong></span>
+                                    <span>•</span>
+                                    <span class="text-emerald-400">هاتوو: <strong>${presentCount}</strong></span>
+                                    <span>•</span>
+                                    <span class="text-rose-400">نەهاتوو: <strong>${absentCount}</strong></span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="flex items-center gap-1.5">
+                            <button type="button" onclick="openStudentImportModal('${hall.id}')" class="bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold px-2.5 py-1.5 rounded-lg flex items-center gap-1 transition" title="زیادکردن بە کۆمەڵ یان ئێکسڵ">
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 13h6m-3-3v6m5 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                                <span>ئێکسڵ / کۆمەڵ</span>
+                            </button>
+                            <button type="button" onclick="deleteHall('${hall.id}')" class="bg-slate-700 hover:bg-rose-600 text-slate-300 hover:text-white p-1.5 rounded-lg transition" title="سڕینەوەی کەرت">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Auto Subject Breakdown per Grade in Hall -->
+                    <div class="px-4 py-2.5 bg-slate-50 border-b border-slate-200 flex flex-wrap items-center gap-1.5">
+                        ${subjectBadgesHtml}
+                    </div>
+
+                    <!-- Single Supervisor & Signature Section -->
+                    <div class="p-4 border-b border-slate-200 bg-amber-50/40 space-y-3">
+                        <div>
+                            <label class="block text-xs font-extrabold text-slate-700 mb-1">مامۆستای چاودێر (تەنها یەک مامۆستا بۆ هەر کەرتێک):</label>
+                            <select onchange="assignHallSupervisor('${hall.id}', this.value)" class="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs sm:text-sm font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                                ${teacherOptions}
+                            </select>
+                        </div>
+
+                        <!-- Supervisor Signature Pad -->
+                        <div class="bg-white border border-slate-200 rounded-xl p-2.5">
+                            <div class="flex items-center justify-between mb-1.5">
+                                <span class="text-xs font-extrabold text-slate-700">واژۆی مامۆستای چاودێر:</span>
+                                <div class="flex items-center gap-2">
+                                    ${sigDataUrl
+                                        ? `<span class="text-[11px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">✓ واژۆ پاشەکەوت کراوە</span>`
+                                        : `<span class="text-[11px] font-semibold text-slate-400">واژۆ نەکراوە</span>`
+                                    }
+                                    <button type="button" onclick="clearHallSignature('${hall.id}')" class="text-xs font-bold text-rose-600 hover:text-rose-700 bg-rose-50 hover:bg-rose-100 px-2.5 py-0.5 rounded-md transition">
+                                        سڕینەوەی واژۆ
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="relative w-full h-24 bg-slate-50 rounded-lg border border-dashed border-slate-300 overflow-hidden">
+                                <canvas id="sig-canvas-${hall.id}" class="sig-canvas w-full h-full block"></canvas>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Add Single Student Bar -->
+                    <div class="p-3.5 border-b border-slate-200 bg-white">
+                        <form onsubmit="addSingleStudent(event, '${hall.id}')" class="flex flex-col sm:flex-row gap-2">
+                            <input type="text" id="st-name-${hall.id}" placeholder="ناوی سیانی خوێندکار..." class="flex-1 bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs sm:text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                            <input type="text" id="st-grade-${hall.id}" placeholder="پۆل و هۆبە (نموونە: ١٠ - ئا)" class="w-full sm:w-36 bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs sm:text-sm font-bold focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                            <button type="submit" class="bg-slate-900 hover:bg-slate-800 active:scale-95 text-white text-xs sm:text-sm font-bold px-4 py-2 rounded-xl transition whitespace-nowrap">
+                                + زیادکردن
+                            </button>
+                        </form>
+                    </div>
+
+                    <!-- Search within Hall -->
+                    ${students.length > 5 ? `
+                    <div class="px-3.5 py-2 bg-slate-50 border-b border-slate-200">
+                        <input type="text" value="${escapeHtml(hallSearchQueries[hall.id] || '')}" oninput="filterHallStudents('${hall.id}', this.value)" placeholder="گەڕان بەدوای ناوی خوێندکار یان پۆل لەم کەرتەدا..." class="w-full bg-white border border-slate-200 rounded-lg px-3 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                    </div>
+                    ` : ''}
+
+                    <!-- Student List -->
+                    <div class="divide-y divide-slate-100 max-h-96 overflow-y-auto flex-1">
+                        ${filteredStudents.length === 0
+                            ? `<div class="p-6 text-center text-xs text-slate-400">هیچ خوێندکارێک نەدۆزرایەوە</div>`
+                            : filteredStudents.map((st, idx) => {
+                                const isAbsent = rec.attendance[st.id] === 'absent';
+                                const statusBtnClass = isAbsent
+                                    ? 'bg-rose-600 hover:bg-rose-500 text-white border-rose-700'
+                                    : 'bg-emerald-600 hover:bg-emerald-500 text-white border-emerald-700';
+                                const statusText = isAbsent ? 'نەهاتوو' : 'هاتوو';
+                                const rowBg = isAbsent ? 'bg-rose-50/60' : 'hover:bg-slate-50';
+
+                                return `
+                                <div class="px-3.5 py-2.5 flex items-center justify-between gap-2 transition ${rowBg}">
+                                    <div class="flex items-center gap-2 min-w-0">
+                                        <span class="text-xs font-extrabold text-slate-400 w-5 shrink-0">${idx + 1}.</span>
+                                        <div class="min-w-0">
+                                            <div class="flex items-center gap-1.5 flex-wrap">
+                                                <span class="text-xs sm:text-sm font-extrabold text-slate-900 truncate">${escapeHtml(st.name)}</span>
+                                                <!-- Transfer Student Icon Button right next to student's name -->
+                                                <button type="button" onclick="openTransferModal('${hall.id}', '${st.id}')" class="inline-flex items-center justify-center w-6 h-6 rounded-lg bg-sky-100 hover:bg-sky-600 text-sky-700 hover:text-white transition shrink-0" title="گواستنەوە بۆ کەرتێکی تر">
+                                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/>
+                                                    </svg>
+                                                </button>
+                                            </div>
+                                            <span class="inline-block mt-0.5 text-[11px] font-bold bg-slate-100 text-slate-700 px-2 py-0.5 rounded-md border border-slate-200">${escapeHtml(st.grade)}</span>
+                                        </div>
+                                    </div>
+
+                                    <div class="flex items-center gap-1.5 shrink-0">
+                                        <button type="button" onclick="toggleStudentAttendance('${st.id}')" class="${statusBtnClass} border text-xs font-extrabold px-3 py-1.5 rounded-xl shadow-2xs active:scale-95 transition min-w-[74px]">
+                                            ${statusText}
+                                        </button>
+                                        <button type="button" onclick="deleteStudent('${hall.id}', '${st.id}')" class="text-slate-400 hover:text-rose-600 p-1.5 rounded-lg hover:bg-rose-50 transition" title="سڕینەوەی خوێندکار">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+                                        </button>
+                                    </div>
+                                </div>
+                                `;
+                            }).join('')
+                        }
+                    </div>
+                </article>
+                `;
+            }).join('');
+
+            // Initialize signature canvases after DOM insertion
+            halls.forEach(hall => {
+                setupSignatureCanvas(hall.id, rec.hallSignatures[hall.id] || '');
+            });
+        }
+
+        function filterHallStudents(hallId, value) {
+            hallSearchQueries[hallId] = value;
+            renderHalls();
+        }
+
+        function addSingleStudent(event, hallId) {
+            event.preventDefault();
+            const nameInput = document.getElementById(`st-name-${hallId}`);
+            const gradeInput = document.getElementById(`st-grade-${hallId}`);
+            if (!nameInput || !gradeInput) return;
+
+            const name = nameInput.value.trim();
+            const grade = gradeInput.value.trim() || '١٠ - ئا';
+
+            if (!name) {
+                showToast('تکایە ناوی خوێندکار بنووسە', 'error');
+                return;
+            }
+
+            const hall = (appState.halls || []).find(h => h.id === hallId);
+            if (!hall) return;
+            if (!Array.isArray(hall.students)) hall.students = [];
+
+            hall.students.push({
+                id: generateId('st'),
+                name,
+                grade
+            });
+
+            nameInput.value = '';
+            saveState();
+            renderAll();
+            showToast(`خوێندکار (${name}) زیادکرا`);
+        }
+
+        function toggleStudentAttendance(studentId) {
+            const rec = getDateRecord();
+            const current = rec.attendance[studentId] || 'present';
+            rec.attendance[studentId] = current === 'present' ? 'absent' : 'present';
+            saveState();
+            renderStatsBar();
+            renderHalls();
+            renderGlobalSearchResults();
+            if (isReportView) renderA4Report();
+        }
+
+        function deleteStudent(hallId, studentId) {
+            const hall = (appState.halls || []).find(h => h.id === hallId);
+            if (!hall || !Array.isArray(hall.students)) return;
+            const st = hall.students.find(s => s.id === studentId);
+            if (!st) return;
+
+            openConfirmModal(`ئایا دڵنیایت لە سڕینەوەی خوێندکار (${st.name})؟`, () => {
+                hall.students = hall.students.filter(s => s.id !== studentId);
+                saveState();
+                renderAll();
+                showToast('خوێندکار سڕایەوە');
+            });
+        }
+
+        // =====================================================================
+        // TRANSFER STUDENT BETWEEN HALLS
+        // =====================================================================
+        function openTransferModal(sourceHallId, studentId) {
+            const halls = appState.halls || [];
+            if (halls.length < 2) {
+                showToast('پێویستە لانیکەم دوو کەرت هەبێت بۆ گواستنەوەی خوێندکار', 'error');
+                return;
+            }
+
+            const sourceHall = halls.find(h => h.id === sourceHallId);
+            if (!sourceHall || !Array.isArray(sourceHall.students)) return;
+            const student = sourceHall.students.find(s => s.id === studentId);
+            if (!student) return;
+
+            const rec = getDateRecord();
+            const isAbsent = rec.attendance[student.id] === 'absent';
+
+            transferContext = { sourceHallId, studentId };
+
+            document.getElementById('transfer-student-name').textContent = student.name;
+            document.getElementById('transfer-student-grade').textContent = student.grade;
+            document.getElementById('transfer-source-hall').textContent = sourceHall.name;
+
+            const statusEl = document.getElementById('transfer-student-status');
+            statusEl.textContent = isAbsent ? 'نەهاتوو' : 'هاتوو';
+            statusEl.className = isAbsent ? 'font-extrabold text-rose-600' : 'font-extrabold text-emerald-600';
+
+            const targetSelect = document.getElementById('transfer-target-hall-select');
+            const otherHalls = halls.filter(h => h.id !== sourceHallId);
+            targetSelect.innerHTML = otherHalls.map(h => `
+                <option value="${h.id}">${escapeHtml(h.name)} (${(h.students || []).length} خوێندکار)</option>
+            `).join('');
+
+            document.getElementById('transfer-modal').classList.remove('hidden');
+        }
+
+        function closeTransferModal() {
+            document.getElementById('transfer-modal').classList.add('hidden');
+            transferContext = null;
+        }
+
+        function confirmStudentTransfer() {
+            if (!transferContext) return;
+            const { sourceHallId, studentId } = transferContext;
+            const targetHallId = document.getElementById('transfer-target-hall-select').value;
+
+            const sourceHall = (appState.halls || []).find(h => h.id === sourceHallId);
+            const targetHall = (appState.halls || []).find(h => h.id === targetHallId);
+            if (!sourceHall || !targetHall || !Array.isArray(sourceHall.students)) return;
+            if (!Array.isArray(targetHall.students)) targetHall.students = [];
+
+            const studentIndex = sourceHall.students.findIndex(s => s.id === studentId);
+            if (studentIndex === -1) return;
+
+            const [movedStudent] = sourceHall.students.splice(studentIndex, 1);
+            targetHall.students.push(movedStudent);
+
+            saveState();
+            closeTransferModal();
+            renderAll();
+            showToast(`خوێندکار (${movedStudent.name}) گواسترایەوە بۆ ${targetHall.name}`);
+        }
+
+        // =====================================================================
+        // SIGNATURE PAD (MOUSE & TOUCH)
+        // =====================================================================
+        function setupSignatureCanvas(hallId, existingDataUrl) {
+            const canvas = document.getElementById(`sig-canvas-${hallId}`);
+            if (!canvas) return;
+
+            const rect = canvas.getBoundingClientRect();
+            const dpr = window.devicePixelRatio || 1;
+            const cssW = Math.max(rect.width, 280);
+            const cssH = Math.max(rect.height, 96);
+            canvas.width = cssW * dpr;
+            canvas.height = cssH * dpr;
+
+            const ctx = canvas.getContext('2d');
+            ctx.scale(dpr, dpr);
+            ctx.lineWidth = 2.4;
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+            ctx.strokeStyle = '#0f172a';
+
+            if (existingDataUrl) {
+                const img = new Image();
+                img.onload = () => {
+                    ctx.drawImage(img, 0, 0, cssW, cssH);
+                };
+                img.src = existingDataUrl;
+            }
+
+            let drawing = false;
+
+            function getPos(e) {
+                const r = canvas.getBoundingClientRect();
+                const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+                const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+                return {
+                    x: clientX - r.left,
+                    y: clientY - r.top
+                };
+            }
+
+            function startDraw(e) {
+                drawing = true;
+                const pos = getPos(e);
+                ctx.beginPath();
+                ctx.moveTo(pos.x, pos.y);
+                if (e.cancelable) e.preventDefault();
+            }
+
+            function moveDraw(e) {
+                if (!drawing) return;
+                const pos = getPos(e);
+                ctx.lineTo(pos.x, pos.y);
+                ctx.stroke();
+                if (e.cancelable) e.preventDefault();
+            }
+
+            function endDraw() {
+                if (!drawing) return;
+                drawing = false;
+                const rec = getDateRecord();
+                rec.hallSignatures[hallId] = canvas.toDataURL('image/png');
+                saveState();
+                renderStatsBar();
+                if (isReportView) renderA4Report();
+            }
+
+            canvas.addEventListener('mousedown', startDraw);
+            canvas.addEventListener('mousemove', moveDraw);
+            window.addEventListener('mouseup', endDraw);
+
+            canvas.addEventListener('touchstart', startDraw, { passive: false });
+            canvas.addEventListener('touchmove', moveDraw, { passive: false });
+            canvas.addEventListener('touchend', endDraw);
+        }
+
+        function clearHallSignature(hallId) {
+            const rec = getDateRecord();
+            delete rec.hallSignatures[hallId];
+            saveState();
+            renderHalls();
+            if (isReportView) renderA4Report();
+            showToast('واژۆ سڕایەوە');
+        }
+
+        // =====================================================================
+        // EXCEL IMPORT & BULK STUDENT ENTRY
+        // =====================================================================
+        function openStudentImportModal(hallId) {
+            const hall = (appState.halls || []).find(h => h.id === hallId);
+            if (!hall) return;
+            importTargetHallId = hallId;
+            parsedExcelRows = [];
+            document.getElementById('import-modal-hall-title').textContent = `کەرتی مەبەست: ${hall.name}`;
+            document.getElementById('excel-file-input').value = '';
+            document.getElementById('excel-preview-wrapper').classList.add('hidden');
+            document.getElementById('bulk-students-textarea').value = '';
+            switchImportTab('excel');
+            document.getElementById('student-import-modal').classList.remove('hidden');
+        }
+
+        function closeStudentImportModal() {
+            document.getElementById('student-import-modal').classList.add('hidden');
+            importTargetHallId = null;
+            parsedExcelRows = [];
+        }
+
+        function switchImportTab(tab) {
+            const btnExcel = document.getElementById('tab-btn-excel');
+            const btnPaste = document.getElementById('tab-btn-paste');
+            const panelExcel = document.getElementById('import-panel-excel');
+            const panelPaste = document.getElementById('import-panel-paste');
+
+            if (tab === 'excel') {
+                btnExcel.className = 'py-2.5 text-xs sm:text-sm font-extrabold border-b-2 border-indigo-600 text-indigo-700 bg-white';
+                btnPaste.className = 'py-2.5 text-xs sm:text-sm font-bold border-b-2 border-transparent text-slate-600 hover:text-slate-900';
+                panelExcel.classList.remove('hidden');
+                panelPaste.classList.add('hidden');
+            } else {
+                btnPaste.className = 'py-2.5 text-xs sm:text-sm font-extrabold border-b-2 border-indigo-600 text-indigo-700 bg-white';
+                btnExcel.className = 'py-2.5 text-xs sm:text-sm font-bold border-b-2 border-transparent text-slate-600 hover:text-slate-900';
+                panelPaste.classList.remove('hidden');
+                panelExcel.classList.add('hidden');
+            }
+        }
+
+        function downloadSampleExcel() {
+            if (typeof XLSX === 'undefined') {
+                showToast('کتێبخانەی ئێکسڵ بارنەکراوە', 'error');
+                return;
+            }
+            const sampleData = [
+                { 'ناوی خوێندکار': 'ئەحمەد سەردار عەلی', 'پۆل و هۆبە': '١٠ - ئا' },
+                { 'ناوی خوێندکار': 'سارا محەمەد قادر', 'پۆل و هۆبە': '١٠ - ب' },
+                { 'ناوی خوێندکار': 'دارا عوسمان حەسەن', 'پۆل و هۆبە': '١١ - ئا' },
+                { 'ناوی خوێندکار': 'لاڤە کامەران سالح', 'پۆل و هۆبە': '١٢ - ج' }
+            ];
+            const ws = XLSX.utils.json_to_sheet(sampleData);
+            ws['!cols'] = [{ wch: 28 }, { wch: 16 }];
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, 'خوێندکاران');
+            XLSX.writeFile(wb, 'نموونەی_لیستی_خوێندکاران_سەفین.xlsx');
+            showToast('فایلی نموونەی ئێکسڵ دابەزێنرا');
+        }
+
+        function handleExcelFileSelect(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            if (typeof XLSX === 'undefined') {
+                showToast('کتێبخانەی ئێکسڵ بارنەکراوە', 'error');
+                return;
+            }
+
+            const defaultGrade = document.getElementById('import-default-grade').value.trim() || '١٠ - ئا';
+            const reader = new FileReader();
+
+            reader.onload = (e) => {
+                try {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, { type: 'array' });
+                    const firstSheetName = workbook.SheetNames[0];
+                    const worksheet = workbook.Sheets[firstSheetName];
+                    const rows = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: '' });
+
+                    if (!rows || rows.length === 0) {
+                        showToast('فایلەکە بەتاڵە', 'error');
+                        return;
+                    }
+
+                    let nameColIdx = 0;
+                    let gradeColIdx = 1;
+                    let startRow = 0;
+
+                    const headerRow = rows[0].map(cell => String(cell).trim().toLowerCase());
+                    const detectedNameCol = headerRow.findIndex(h =>
+                        h.includes('ناو') || h.includes('خوێندکار') || h.includes('name') || h.includes('student')
+                    );
+                    const detectedGradeCol = headerRow.findIndex(h =>
+                        h.includes('پۆل') || h.includes('هۆبە') || h.includes('grade') || h.includes('class') || h.includes('section')
+                    );
+
+                    if (detectedNameCol !== -1 || detectedGradeCol !== -1) {
+                        startRow = 1;
+                        if (detectedNameCol !== -1) nameColIdx = detectedNameCol;
+                        if (detectedGradeCol !== -1) gradeColIdx = detectedGradeCol;
+                    }
+
+                    const extracted = [];
+                    for (let i = startRow; i < rows.length; i++) {
+                        const row = rows[i];
+                        if (!row || row.length === 0) continue;
+                        const rawName = String(row[nameColIdx] || '').trim();
+                        if (!rawName) continue;
+                        const rawGrade = row[gradeColIdx] !== undefined ? String(row[gradeColIdx]).trim() : '';
+                        extracted.push({
+                            name: rawName,
+                            grade: rawGrade || defaultGrade
+                        });
+                    }
+
+                    if (extracted.length === 0) {
+                        showToast('هیچ ناوێکی خوێندکار لە فایلەکەدا نەدۆزرایەوە', 'error');
+                        return;
+                    }
+
+                    parsedExcelRows = extracted;
+                    document.getElementById('excel-preview-count').textContent = extracted.length;
+                    document.getElementById('excel-preview-list').innerHTML = extracted.map((item, idx) => `
+                        <div class="px-3 py-1.5 flex items-center justify-between">
+                            <span class="font-bold text-slate-800">${idx + 1}. ${escapeHtml(item.name)}</span>
+                            <span class="bg-slate-100 text-slate-700 px-2 py-0.5 rounded font-semibold">${escapeHtml(item.grade)}</span>
+                        </div>
+                    `).join('');
+                    document.getElementById('excel-preview-wrapper').classList.remove('hidden');
+                } catch (err) {
+                    console.error('Excel parse error:', err);
+                    showToast('هەڵە لە خوێندنەوەی فایلی ئێکسڵ', 'error');
+                }
+            };
+
+            reader.readAsArrayBuffer(file);
+        }
+
+        function confirmExcelImport() {
+            if (!importTargetHallId || parsedExcelRows.length === 0) return;
+            const hall = (appState.halls || []).find(h => h.id === importTargetHallId);
+            if (!hall) return;
+            if (!Array.isArray(hall.students)) hall.students = [];
+
+            parsedExcelRows.forEach(item => {
+                hall.students.push({
+                    id: generateId('st'),
+                    name: item.name,
+                    grade: item.grade
+                });
+            });
+
+            const count = parsedExcelRows.length;
+            saveState();
+            closeStudentImportModal();
+            renderAll();
+            showToast(`${count} خوێندکار لە فایلی ئێکسڵەوە زیادکران`);
+        }
+
+        function confirmBulkPasteStudents() {
+            if (!importTargetHallId) return;
+            const hall = (appState.halls || []).find(h => h.id === importTargetHallId);
+            if (!hall) return;
+            if (!Array.isArray(hall.students)) hall.students = [];
+
+            const defaultGrade = document.getElementById('import-default-grade').value.trim() || '١٠ - ئا';
+            const rawText = document.getElementById('bulk-students-textarea').value;
+            const lines = rawText.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+
+            if (lines.length === 0) {
+                showToast('تکایە ناوی خوێندکاران بنووسە', 'error');
+                return;
+            }
+
+            let added = 0;
+            lines.forEach(line => {
+                let name = line;
+                let grade = defaultGrade;
+
+                const dashIdx = line.indexOf('-');
+                const commaIdx = line.indexOf(',');
+                let splitIdx = -1;
+                if (dashIdx > 0 && commaIdx > 0) splitIdx = Math.min(dashIdx, commaIdx);
+                else if (dashIdx > 0) splitIdx = dashIdx;
+                else if (commaIdx > 0) splitIdx = commaIdx;
+
+                if (splitIdx > 0) {
+                    const possibleName = line.substring(0, splitIdx).trim();
+                    const possibleGrade = line.substring(splitIdx + 1).trim();
+                    if (possibleName) {
+                        name = possibleName;
+                        if (possibleGrade) grade = possibleGrade;
+                    }
+                }
+
+                hall.students.push({
+                    id: generateId('st'),
+                    name,
+                    grade
+                });
+                added++;
+            });
+
+            saveState();
+            closeStudentImportModal();
+            renderAll();
+            showToast(`${added} خوێندکار زیادکران بۆ ${hall.name}`);
+        }
+
+        // =====================================================================
+        // JSON BACKUP & RESTORE
+        // =====================================================================
+        function exportJSON() {
+            try {
+                const dataStr = JSON.stringify(appState, null, 2);
+                const blob = new Blob([dataStr], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `پاشەکەوتی_تاقیکردنەوە_سەفین_${appState.selectedDate}.json`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                showToast('فایلی پاشەکەوتی JSON دابەزێنرا');
+            } catch (e) {
+                console.error(e);
+                showToast('هەڵە لە هەناردەکردنی JSON', 'error');
+            }
+        }
+
+        function importJSON(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                try {
+                    const parsed = JSON.parse(e.target.result);
+                    if (!parsed || typeof parsed !== 'object' || !Array.isArray(parsed.halls)) {
+                        showToast('فایلی JSON گونجاو نییە', 'error');
+                        return;
+                    }
+                    appState = sanitizeState(parsed);
+                    const dateInp = document.getElementById('exam-date-input');
+                    if (dateInp) dateInp.value = appState.selectedDate;
+                    saveState();
+                    renderAll();
+                    showToast('پاشەکەوت بە سەرکەوتوویی گەڕێنرایەوە');
+                } catch (err) {
+                    console.error(err);
+                    showToast('هەڵە لە خوێندنەوەی فایلی JSON', 'error');
+                }
+            };
+            reader.readAsText(file);
+            event.target.value = '';
+        }
+
+        // =====================================================================
+        // 2-PAGE A4 DAILY REPORT & PRINTING
+        // =====================================================================
+        function toggleMainView() {
+            isReportView = !isReportView;
+            const workspace = document.getElementById('workspace-view');
+            const printWrapper = document.getElementById('print-section-wrapper');
+            const toggleText = document.getElementById('btn-toggle-view-text');
+
+            if (isReportView) {
+                workspace.classList.add('hidden');
+                printWrapper.classList.remove('hidden');
+                if (toggleText) toggleText.textContent = 'گەڕانەوە بۆ کەرتەکان';
+                renderA4Report();
+            } else {
+                printWrapper.classList.add('hidden');
+                workspace.classList.remove('hidden');
+                if (toggleText) toggleText.textContent = 'ڕاپۆرتی کۆتایی ڕۆژ (A4)';
+                renderHalls();
+            }
+        }
+
+        function buildA4ReportHTML() {
+            const rec = getDateRecord();
+            const halls = appState.halls || [];
+
+            const splitIndex = Math.ceil(halls.length / 2);
+            const page1Halls = halls.slice(0, splitIndex);
+            const page2Halls = halls.slice(splitIndex);
+
+            const gradeTotals = { '10': 0, '11': 0, '12': 0, 'other': 0 };
+            let grandTotalStudents = 0;
+            let grandTotalAbsent = 0;
+            const allAbsentees = [];
+
+            halls.forEach(hall => {
+                (hall.students || []).forEach(st => {
+                    grandTotalStudents++;
+                    const lvl = detectGradeLevel(st.grade);
+                    gradeTotals[lvl] = (gradeTotals[lvl] || 0) + 1;
+
+                    if (rec.attendance[st.id] === 'absent') {
+                        grandTotalAbsent++;
+                        const subj = lvl === '10' ? rec.dailySubjects['10']
+                            : lvl === '11' ? rec.dailySubjects['11']
+                            : lvl === '12' ? rec.dailySubjects['12']
+                            : '';
+                        allAbsentees.push({
+                            name: st.name,
+                            grade: st.grade,
+                            hallName: hall.name,
+                            subject: subj || '—'
+                        });
+                    }
+                });
+            });
+
+            const grandTotalPresent = grandTotalStudents - grandTotalAbsent;
+
+            function renderHall3RowCard(hall) {
+                const students = Array.isArray(hall.students) ? hall.students : [];
+                const { subjectGroups, gradeDetails } = getHallSubjectBreakdown(hall);
+                const supervisor = rec.hallSupervisors[hall.id] || 'دیاری نەکراوە';
+                const sigUrl = rec.hallSignatures[hall.id] || '';
+
+                const absenteesInHall = students.filter(st => rec.attendance[st.id] === 'absent');
+                const absentCount = absenteesInHall.length;
+
+                let row1Text = '';
+                if (students.length === 0) {
+                    row1Text = 'هیچ خوێندکارێک لەم کەرتەدا نییە';
+                } else {
+                    const subjParts = Object.entries(subjectGroups).map(([subj, cnt]) => `${subj}: (${cnt}) خوێندکار`);
+                    const gradeParts = gradeDetails.map(g => `${g.gradeLabel}: ${g.count}`);
+                    row1Text = `${subjParts.join('  |  ')}  —  [${gradeParts.join(' ، ')}]`;
+                }
+
+                let row2Text = '';
+                if (absentCount === 0) {
+                    row2Text = 'ژمارەی نەهاتووان: (٠) — هیچ خوێندکارێک نەهاتوو نییە';
+                } else {
+                    const namesList = absenteesInHall.map(st => `${st.name} (${st.grade})`).join(' ، ');
+                    row2Text = `ژمارەی نەهاتووان: (${absentCount}) — ${namesList}`;
+                }
+
+                return `
+                <div class="border border-slate-400 rounded-lg overflow-hidden mb-2 bg-white">
+                    <div class="bg-slate-100 border-b border-slate-400 px-2.5 py-1 flex items-center justify-between text-xs font-extrabold text-slate-900">
+                        <span>${escapeHtml(hall.name)}</span>
+                        <span>کۆی خوێندکاران: ${students.length} | هاتوو: ${students.length - absentCount} | نەهاتوو: ${absentCount}</span>
+                    </div>
+                    <table class="w-full border-collapse text-[11px]">
+                        <tbody>
+                            <tr class="border-b border-slate-300">
+                                <td class="w-40 bg-slate-50 font-extrabold text-slate-800 px-2.5 py-1.5 border-l border-slate-300">بابەتی ئەمڕۆ و ژمارەی خوێندکار:</td>
+                                <td class="px-2.5 py-1.5 font-bold text-slate-900">${escapeHtml(row1Text)}</td>
+                            </tr>
+                            <tr class="border-b border-slate-300">
+                                <td class="w-40 bg-slate-50 font-extrabold text-slate-800 px-2.5 py-1.5 border-l border-slate-300">ناو و ژمارەی نەهاتووان:</td>
+                                <td class="px-2.5 py-1.5 font-bold ${absentCount > 0 ? 'text-rose-800' : 'text-emerald-800'}">${escapeHtml(row2Text)}</td>
+                            </tr>
+                            <tr>
+                                <td class="w-40 bg-slate-50 font-extrabold text-slate-800 px-2.5 py-1.5 border-l border-slate-300">مامۆستای چاودێر و واژۆ:</td>
+                                <td class="px-2.5 py-1">
+                                    <div class="flex items-center justify-between gap-4">
+                                        <span class="font-extrabold text-slate-900 text-xs">${escapeHtml(supervisor)}</span>
+                                        <div class="flex items-center gap-2">
+                                            <span class="text-[10px] text-slate-500">واژۆ:</span>
+                                            ${sigUrl
+                                                ? `<img src="${sigUrl}" alt="واژۆ" class="h-8 max-w-[130px] object-contain border-b border-slate-300">`
+                                                : `<span class="inline-block w-28 h-6 border-b border-dashed border-slate-400"></span>`
+                                            }
+                                        </div>
+                                    </div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                `;
+            }
+
+            const reportHeaderHTML = (pageNum) => `
+                <div class="border-b-2 border-slate-900 pb-2 mb-2.5 flex items-center justify-between">
+                    <div>
+                        <h1 class="text-base font-extrabold text-slate-900">ئامادەیی سەفین — ڕاپۆرتی ڕۆژانەی هۆڵەکانی تاقیکردنەوە</h1>
+                        <div class="text-[11px] font-bold text-slate-700 mt-0.5">
+                            بابەتەکانی ئەمڕۆ:
+                            پۆلی ١٠ (${escapeHtml(rec.dailySubjects['10'] || '—')}) |
+                            پۆلی ١١ (${escapeHtml(rec.dailySubjects['11'] || '—')}) |
+                            پۆلی ١٢ (${escapeHtml(rec.dailySubjects['12'] || '—')})
+                        </div>
+                    </div>
+                    <div class="text-left text-xs font-extrabold text-slate-800">
+                        <div>بەروار: ${escapeHtml(appState.selectedDate)}</div>
+                        <div class="text-[11px] text-slate-500 font-bold">پەڕەی ${pageNum} لە ٢</div>
+                    </div>
+                </div>
+            `;
+
+            const page1HTML = `
+                <div class="a4-page">
+                    <div>
+                        ${reportHeaderHTML('١')}
+                        ${page1Halls.length > 0
+                            ? page1Halls.map(renderHall3RowCard).join('')
+                            : `<div class="text-center text-xs text-slate-500 py-8">هیچ کەرتێک تۆمار نەکراوە</div>`
+                        }
+                    </div>
+                    <div class="border-t border-slate-300 pt-1.5 flex justify-between text-[10px] text-slate-500 font-bold">
+                        <span>سیستەمی بەڕێوەبردنی تاقیکردنەوەکان - ئامادەیی سەفین</span>
+                        <span>بەردەوام دەبێت لە پەڕەی دووەمدا ←</span>
+                    </div>
+                </div>
+            `;
+
+            const page2HTML = `
+                <div class="a4-page">
+                    <div class="space-y-3">
+                        ${reportHeaderHTML('٢')}
+
+                        ${page2Halls.length > 0 ? `<div>${page2Halls.map(renderHall3RowCard).join('')}</div>` : ''}
+
+                        <div class="border-2 border-slate-800 rounded-xl p-3 bg-slate-50 space-y-2.5">
+                            <h2 class="text-xs font-extrabold text-slate-900 border-b border-slate-300 pb-1">پوختەی کۆتایی ڕۆژ (بەپێی پۆل و ئامادەبوون)</h2>
+
+                            <div class="grid grid-cols-3 sm:grid-cols-6 gap-2 text-center text-xs">
+                                <div class="bg-white border border-slate-300 rounded-lg p-1.5">
+                                    <div class="text-[10px] text-slate-500 font-bold">کۆی پۆلی ١٠</div>
+                                    <div class="text-sm font-extrabold text-slate-900">${gradeTotals['10']}</div>
+                                </div>
+                                <div class="bg-white border border-slate-300 rounded-lg p-1.5">
+                                    <div class="text-[10px] text-slate-500 font-bold">کۆی پۆلی ١١</div>
+                                    <div class="text-sm font-extrabold text-slate-900">${gradeTotals['11']}</div>
+                                </div>
+                                <div class="bg-white border border-slate-300 rounded-lg p-1.5">
+                                    <div class="text-[10px] text-slate-500 font-bold">کۆی پۆلی ١٢</div>
+                                    <div class="text-sm font-extrabold text-slate-900">${gradeTotals['12']}</div>
+                                </div>
+                                <div class="bg-white border border-indigo-300 rounded-lg p-1.5">
+                                    <div class="text-[10px] text-indigo-700 font-bold">کۆی گشتی</div>
+                                    <div class="text-sm font-extrabold text-indigo-800">${grandTotalStudents}</div>
+                                </div>
+                                <div class="bg-white border border-emerald-300 rounded-lg p-1.5">
+                                    <div class="text-[10px] text-emerald-700 font-bold">کۆی هاتووان</div>
+                                    <div class="text-sm font-extrabold text-emerald-700">${grandTotalPresent}</div>
+                                </div>
+                                <div class="bg-white border border-rose-300 rounded-lg p-1.5">
+                                    <div class="text-[10px] text-rose-700 font-bold">کۆی نەهاتووان</div>
+                                    <div class="text-sm font-extrabold text-rose-700">${grandTotalAbsent}</div>
+                                </div>
+                            </div>
+
+                            <div>
+                                <div class="text-[11px] font-extrabold text-rose-900 mb-1">لیستی گشتی خوێندکارە نەهاتووەکانی ئەمڕۆ (${allAbsentees.length} خوێندکار):</div>
+                                ${allAbsentees.length === 0
+                                    ? `<div class="bg-white border border-emerald-200 text-emerald-800 text-xs font-bold p-2 rounded-lg text-center">سەرجەم خوێندکاران ئامادەبوون و هیچ نەهاتوویەک تۆمار نەکراوە.</div>`
+                                    : `
+                                    <table class="w-full border-collapse bg-white text-[11px] border border-slate-400">
+                                        <thead>
+                                            <tr class="bg-slate-200 text-slate-900 font-extrabold">
+                                                <th class="border border-slate-400 px-2 py-1 w-8 text-center">#</th>
+                                                <th class="border border-slate-400 px-2 py-1 text-right">ناوی خوێندکار</th>
+                                                <th class="border border-slate-400 px-2 py-1 text-right">پۆل و هۆبە</th>
+                                                <th class="border border-slate-400 px-2 py-1 text-right">کەرت</th>
+                                                <th class="border border-slate-400 px-2 py-1 text-right">بابەت</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            ${allAbsentees.map((ab, idx) => `
+                                                <tr>
+                                                    <td class="border border-slate-300 px-2 py-1 text-center font-bold">${idx + 1}</td>
+                                                    <td class="border border-slate-300 px-2 py-1 font-extrabold text-slate-900">${escapeHtml(ab.name)}</td>
+                                                    <td class="border border-slate-300 px-2 py-1 font-bold">${escapeHtml(ab.grade)}</td>
+                                                    <td class="border border-slate-300 px-2 py-1 font-bold">${escapeHtml(ab.hallName)}</td>
+                                                    <td class="border border-slate-300 px-2 py-1">${escapeHtml(ab.subject)}</td>
+                                                </tr>
+                                            `).join('')}
+                                        </tbody>
+                                    </table>
+                                    `
+                                }
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="pt-4 mt-2 border-t border-slate-300 flex items-center justify-between text-xs font-extrabold text-slate-800">
+                        <div>لیژنەی تاقیکردنەوەکان</div>
+                        <div>بەڕێوەبەری ئامادەیی سەفین</div>
+                    </div>
+                </div>
+            `;
+
+            return page1HTML + page2HTML;
+        }
+
+        function renderA4Report() {
+            const container = document.getElementById('a4-pages-container');
+            if (container) {
+                container.innerHTML = buildA4ReportHTML();
+            }
+        }
+
+        function printA4Report() {
+            const reportHTML = buildA4ReportHTML();
+            const container = document.getElementById('a4-pages-container');
+            if (container) {
+                container.innerHTML = reportHTML;
+            }
+
+            let isInIframe = false;
+            try {
+                isInIframe = window.self !== window.top;
+            } catch (e) {
+                isInIframe = true;
+            }
+
+            if (isInIframe) {
+                openDedicatedPrintWindow(reportHTML);
+                return;
+            }
+
+            try {
+                window.focus();
+                window.print();
+            } catch (err) {
+                openDedicatedPrintWindow(reportHTML);
+            }
+        }
+
+        function openDedicatedPrintWindow(reportHTML) {
+            const printWin = window.open('', '_blank', 'width=900,height=1100');
+            if (!printWin) {
+                if (!isReportView) toggleMainView();
+                window.focus();
+                window.print();
+                return;
+            }
+
+            printWin.document.open();
+            printWin.document.write(`
+                <!DOCTYPE html>
+                <html lang="ckb" dir="rtl">
+                <head>
+                    <meta charset="UTF-8">
+                    <title>ڕاپۆرتی کۆتایی ڕۆژ - ئامادەیی سەفین (${escapeHtml(appState.selectedDate)})</title>
+                    <script src="https://cdn.tailwindcss.com"><\/script>
+                    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Arabic:wght@400;600;700;800&display=swap" rel="stylesheet">
+                    <style>
+                        @page {
+                            size: A4 portrait;
+                            margin: 8mm 10mm;
+                        }
+                        body {
+                            font-family: 'Noto Sans Arabic', sans-serif;
+                            background: #ffffff;
+                            color: #0f172a;
+                            margin: 0;
+                            padding: 0;
+                        }
+                        .a4-page {
+                            width: 100%;
+                            min-height: 278mm;
+                            max-height: 281mm;
+                            padding: 0;
+                            margin: 0;
+                            box-sizing: border-box;
+                            display: flex;
+                            flex-direction: column;
+                            justify-content: space-between;
+                            page-break-after: always;
+                            break-after: page;
+                            overflow: hidden;
+                        }
+                        .a4-page:last-child {
+                            page-break-after: auto;
+                            break-after: auto;
+                        }
+                        @media print {
+                            .no-print-bar { display: none !important; }
+                        }
+                    </style>
+                </head>
+                <body>
+                    <div class="no-print-bar bg-slate-900 text-white p-3 flex items-center justify-between">
+                        <span class="text-sm font-bold">پێشبینینی چاپکردن (٢ پەڕەی A4)</span>
+                        <button onclick="window.focus(); window.print();" class="bg-indigo-600 text-white px-4 py-1.5 rounded-lg text-sm font-bold">چاپکردن</button>
+                    </div>
+                    ${reportHTML}
+                    <script>
+                        window.onload = function() {
+                            setTimeout(function() {
+                                window.focus();
+                                window.print();
+                            }, 550);
+                        };
+                    <\/script>
+                </body>
+                </html>
+            `);
+            printWin.document.close();
+        }
+
+        // Boot Application
+        window.addEventListener('DOMContentLoaded', () => {
+            initApp();
+            updateScrollTopVisibility();
+        });
+    </script>
+</body>
+</html>
